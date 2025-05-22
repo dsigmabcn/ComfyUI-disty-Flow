@@ -1120,7 +1120,9 @@ button:hover {
     padding-bottom: 10px;
 }
 
-.image-loader img {
+.image-loader img,
+.image-loader video 
+    {
     display: block;
     width: 100% !important; /* Force same width */
     height: auto !important; /* Let height adjust automatically */

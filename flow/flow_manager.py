@@ -3,7 +3,7 @@ from pathlib import Path
 from aiohttp import web
 from typing import Dict, Any
 from .constants import (
-    FLOWS_PATH, CORE_PATH, LINKER_PATH, FLOW_PATH, APP_CONFIGS, FLOWMSG,FLOWS_CONFIG_FILE, logger
+    FLOWS_PATH, CORE_PATH, LINKER_PATH, FLOW_PATH, MODEL_MANAGER_PATH,APP_CONFIGS, FLOWMSG,FLOWS_CONFIG_FILE, logger
 )
 from .route_manager import RouteManager
 from .api_handlers import (
@@ -15,7 +15,11 @@ from .api_handlers import (
     set_model_preview_handler,
     clear_model_preview_handler,
     list_model_previews_handler,
-    get_model_preview_handler
+    get_model_preview_handler,
+    directory_listing_handler,
+    download_model_handler,
+    rename_file_handler,
+    delete_file_handler
 )
 
 class FlowManager:
@@ -76,6 +80,10 @@ class FlowManager:
             (f'/flow/api/model-preview', 'DELETE', clear_model_preview_handler),
             (f'/flow/api/model-previews', 'POST', list_model_previews_handler),
             (f'/flow/api/model-preview', 'GET', get_model_preview_handler),
+            (f"/flow/api/directory", "GET", directory_listing_handler),
+            (f'/flow/api/download', 'POST', download_model_handler),
+            (f'/flow/api/rename-file', 'POST', rename_file_handler),
+            (f'/flow/api/delete-file', 'POST', delete_file_handler),
         ]
 
         for path, method, handler in api_routes:
@@ -92,6 +100,8 @@ class FlowManager:
             app.add_routes(RouteManager.create_routes('flow/linker', LINKER_PATH))
         if FLOW_PATH.is_dir():
             app.add_routes(RouteManager.create_routes('flow', FLOW_PATH))
+        if MODEL_MANAGER_PATH.is_dir():
+            app.add_routes(RouteManager.create_routes('flow/model_manager', MODEL_MANAGER_PATH))
 
     @staticmethod
     def _load_config(conf_file: Path) -> Dict[str, Any]:

@@ -14,7 +14,7 @@ from PIL import Image
 from .constants import (
     APP_CONFIGS, APP_VERSION, EXTENSION_NODE_MAP_PATH,
     CUSTOM_NODES_DIR, FLOWMSG, logger, FLOWS_PATH, WEBROOT, CORE_PATH,
-    SAFE_FOLDER_NAME_REGEX, ALLOWED_EXTENSIONS, CUSTOM_THEMES_DIR, FLOWS_CONFIG_FILE
+    SAFE_FOLDER_NAME_REGEX, ALLOWED_EXTENSIONS, CUSTOM_THEMES_DIR, FLOWS_CONFIG_FILE, MODELS_DIRECTORY
 )
 
 DATA_DIR = Path(__file__).parent / "data"
@@ -694,3 +694,129 @@ def allowed_file(filename: str) -> bool:
 def remove_readonly(func, path, excinfo):
     os.chmod(path, stat.S_IWRITE)
     func(path)
+
+#this api handler is defined to be able to list the directories used in the manager
+async def directory_listing_handler(request: web.Request) -> web.Response:
+    path_param = request.query.get("path")
+    if not path_param:
+        return web.json_response({"error": "Missing 'path' parameter"}, status=400)
+
+    try:
+        requested_path = Path(path_param).resolve()
+
+        # Ensure the requested path is within the allowed models directory
+        if not str(requested_path).startswith(str(MODELS_DIRECTORY.resolve())):
+            return web.json_response({"error": "Access denied"}, status=403)
+
+        if not requested_path.exists() or not requested_path.is_dir():
+            return web.json_response({"error": "Directory not found"}, status=404)
+
+        items = []
+        for item in requested_path.iterdir():
+            items.append({
+                "name": item.name,
+                "type": "folder" if item.is_dir() else "file"
+            })
+
+        return web.json_response(items)
+
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
+from aiohttp import web
+import aiohttp
+import os
+
+async def download_model_handler(request):
+    try:
+        data = await request.json()
+        url = data.get('url')
+        target_path = data.get('targetPath')
+
+        if not url or not target_path:
+            return web.json_response({'error': 'Missing url or targetPath'}, status=400)
+
+        #filename = os.path.basename(url)
+        #save_path = os.path.join(target_path, filename)
+        
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status != 200:
+                    return web.json_response({'error': f'Failed to download file: {resp.status}'}, status=resp.status)
+                
+                filename = extract_filename_from_response(resp, url)
+                save_path = os.path.join(target_path, filename)
+
+                with open(save_path, 'wb') as f:
+                    while True:
+                        chunk = await resp.content.read(1024)
+                        if not chunk:
+                            break
+                        f.write(chunk)
+
+        return web.json_response({'message': 'Download successful', 'path': save_path})
+
+    except Exception as e:
+        return web.json_response({'error': str(e)}, status=500)
+
+
+def extract_filename_from_response(resp, url):
+    # Look for any header that contains 'content-disposition' (case-insensitive)
+    for key, value in resp.headers.items():
+        if 'content-disposition' in key.lower():
+            match = re.search(r'filename="?([^"]+)"?', value)
+            if match:
+                return match.group(1)
+
+    # Fallback to URL path
+    parsed_url = urllib.parse.urlparse(url)
+    return os.path.basename(parsed_url.path)
+
+async def rename_file_handler(request: web.Request) -> web.Response:
+    try:
+        data = await request.json()
+        current_path = Path(data.get("currentPath")).resolve()
+        new_name = data.get("newName")
+
+        if not current_path.exists():
+            return web.json_response({"error": "File not found"}, status=404)
+
+        if not new_name:
+            return web.json_response({"error": "Missing newName"}, status=400)
+
+        # Ensure the file is within the allowed directory
+        if not str(current_path).startswith(str(MODELS_DIRECTORY.resolve())):
+            return web.json_response({"error": "Access denied"}, status=403)
+
+        new_path = current_path.parent / new_name
+
+        current_path.rename(new_path)
+
+        return web.json_response({"message": "Rename successful", "newPath": str(new_path)})
+
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
+import shutil
+
+async def delete_file_handler(request: web.Request) -> web.Response:
+    try:
+        data = await request.json()
+        file_path = Path(data.get("filePath")).resolve()
+
+        if not file_path.exists():
+            return web.json_response({"error": "File not found"}, status=404)
+
+        # Ensure the file is within the allowed directory
+        if not str(file_path).startswith(str(MODELS_DIRECTORY.resolve())):
+            return web.json_response({"error": "Access denied"}, status=403)
+
+        if file_path.is_dir():
+            shutil.rmtree(file_path)
+        else:
+            file_path.unlink()
+
+        return web.json_response({"message": "Delete successful"})
+
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)

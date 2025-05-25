@@ -14,11 +14,15 @@ CORE_PATH = WEBROOT / "core"
 FLOW_PATH = WEBROOT / "flow"
 FLOWS_PATH = WEBROOT / "flows"
 LINKER_PATH = WEBROOT / "linker"
+#Added to access the new model manager app
+MODEL_MANAGER_PATH = WEBROOT / "model_manager"
 CUSTOM_THEMES_DIR = WEBROOT / 'custom-themes'
 WEB_DIRECTORY = "web/core/js/common/scripts"
 
 CUSTOM_NODES_DIR = ROOT_DIR.parent
 EXTENSION_NODE_MAP_PATH = ROOT_DIR.parent / "ComfyUI-Manager" / "extension-node-map.json"
+#added constant to point to the Models directory in the api handlers
+MODELS_DIRECTORY = CUSTOM_NODES_DIR.parent / "models"
 
 FLOWS_DOWNLOAD_PATH = 'https://github.com/diStyApps/flows_lib'
 

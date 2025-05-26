@@ -19,7 +19,8 @@ from .api_handlers import (
     directory_listing_handler,
     download_model_handler,
     rename_file_handler,
-    delete_file_handler
+    delete_file_handler,
+    upload_file_handler
 )
 
 class FlowManager:
@@ -84,6 +85,8 @@ class FlowManager:
             (f'/flow/api/download', 'POST', download_model_handler),
             (f'/flow/api/rename-file', 'POST', rename_file_handler),
             (f'/flow/api/delete-file', 'POST', delete_file_handler),
+            (f'/flow/api/upload', 'POST', upload_file_handler),
+
         ]
 
         for path, method, handler in api_routes:

@@ -820,3 +820,36 @@ async def delete_file_handler(request: web.Request) -> web.Response:
 
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
+
+#This is the handler to upload a file
+async def upload_file_handler(request: web.Request) -> web.Response:
+    reader = await request.multipart()
+
+    # Read file field
+    field = await reader.next()
+    if field.name != 'file':
+        return web.json_response({'error': 'Missing file field'}, status=400)
+
+    filename = field.filename
+    if not filename:
+        return web.json_response({'error': 'No filename provided'}, status=400)
+
+    # Read targetPath field
+    target_path_field = await reader.next()
+    if target_path_field.name != 'targetPath':
+        return web.json_response({'error': 'Missing targetPath field'}, status=400)
+
+    target_path = await target_path_field.text()
+    os.makedirs(target_path, exist_ok=True)
+
+    file_path = os.path.join(target_path, filename)
+
+    # Save file
+    with open(file_path, 'wb') as f:
+        while True:
+            chunk = await field.read_chunk()
+            if not chunk:
+                break
+            f.write(chunk)
+
+    return web.json_response({'status': 'success', 'filename': filename})

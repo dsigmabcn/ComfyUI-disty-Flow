@@ -24,7 +24,9 @@ EXTENSION_NODE_MAP_PATH = ROOT_DIR.parent / "ComfyUI-Manager" / "extension-node-
 #added constant to point to the Models directory in the api handlers
 MODELS_DIRECTORY = CUSTOM_NODES_DIR.parent / "models"
 
-FLOWS_DOWNLOAD_PATH = 'https://github.com/diStyApps/flows_lib'
+#FLOWS_DOWNLOAD_PATH = 'https://github.com/diStyApps/flows_lib'
+FLOWS_DOWNLOAD_PATH = 'https://github.com/dsigmabcn/lib_WanVACE_flows'
+
 
 SAFE_FOLDER_NAME_REGEX = re.compile(r'^[\w\-]+$')
 ALLOWED_EXTENSIONS = {'css'}
